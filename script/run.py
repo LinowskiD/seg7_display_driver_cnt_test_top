@@ -4,7 +4,7 @@ import sys
 import os
 
 # MODULE_NAME
-MODULE_NAME = "upcnt_16bit"
+MODULE_NAME = "tim_upcnt_16bit"
 # VHDL version
 VHDL_STANDARD = "2008"
 # ROOT
