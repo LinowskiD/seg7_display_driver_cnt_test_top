@@ -75,8 +75,8 @@ begin
         check_equal(dut_rst_n, '0', "for reset to be enabled");
         info("Disable reset");
         dut_rst_n <= '1';
-        info("PSC set to 0x0001");
-        dut_tim_psc <= X"0001";
+        info("PSC set to 0x0000");
+        dut_tim_psc <= X"0000";
         info("ARR set to 0xFFFF");
         dut_tim_arr <= X"FFFF";
         info("Enable timer");
@@ -86,11 +86,30 @@ begin
         walk(dut_clk, 1);
         wait for 0 ns; -- for delta cycle
         info("Events shall be cleared");
-        check_equal(dut_tim_up_evt, '0', result("for o_tim_up_evt when in reset"));
-        check_equal(dut_tim_ov_evt, '0', result("for o_tim_ov_evt when in reset"));
+        check_equal(dut_tim_up_evt, '0', result("for o_tim_up_evt when just enabled"));
+        check_equal(dut_tim_ov_evt, '0', result("for o_tim_ov_evt when just enabled"));
         info("Counter shall be cleared");
         check_equal(dut_tim_cnt, std_logic_vector(to_unsigned(0, dut_tim_cnt'length)), result("for o_tim_cnt when in reset"));
-        wait for 100 us;
+        info("Wait for tim_up_evt to occur");
+        -- one for tim_en to be registered
+        -- then second one for psc_clk_en
+        -- then third one for the first actual timer update
+        wait until rising_edge(dut_clk);
+        wait until (dut_tim_up_evt'event and dut_tim_up_evt = '1') for 3*c_clk_period;
+        -- wait for 0 ns; -- for delta cycle
+        check_equal(dut_tim_up_evt, '1', result("for o_tim_up_evt when first update happens"));
+        check_equal(dut_tim_cnt, std_logic_vector(to_unsigned(1, dut_tim_cnt'length)), result("for o_tim_cnt when first update happens"));
+        info("In this case o_tim_up_evt shall be stable but o_tim_cnt shall increment each clock cycle");
+        -- wait for 10*c_clk_period;
+        walk(dut_clk, 1);
+        for inc_nmb in 2 to 11 loop
+          wait for c_clk_period;
+          -- wait for 0 ns; -- for delta cycle
+          check_equal(dut_tim_cnt, std_logic_vector(to_unsigned(inc_nmb, dut_tim_cnt'length)), result("for o_tim_cnt when first update happens"));
+        end loop;
+        check_equal(dut_tim_up_evt'stable(10*c_clk_period), true, result("for o_tim_up_evt with no actual prescaler"));
+        
+        -- wait for 10 us;
       end if;
     end loop;
     test_runner_cleanup(runner); -- Simulation ends here
