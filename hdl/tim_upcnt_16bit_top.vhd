@@ -31,8 +31,7 @@ architecture rtl of tim_upcnt_16bit_top is
   signal psc_cnt : unsigned(15 downto 0);
   signal tim_cnt : unsigned(15 downto 0);
   -- registers
-  signal psc_reg : std_logic_vector(15 downto 0); 
-  signal arr_reg : std_logic_vector(15 downto 0);
+  signal reg : t_tim_upcnt_16bit_reg;
 
 begin
 
@@ -58,18 +57,18 @@ begin
   begin
     if (i_rst_n = '0') then
       psc_cnt <= (others => '0');
-      psc_reg <= (others => '0');
+      reg.psc <= (others => '0');
       psc_clk_en <= '0';
     elsif rising_edge(i_clk) then
       psc_clk_en <= '0';
       if (ctrl_en = '0') then
         psc_cnt <= (others => '0');
-        psc_reg <= (others => '0');
+        reg.psc <= (others => '0');
       else
         if (ctrl_en_re = '1') then
-          psc_reg <= i_tim_psc;
+          reg.psc <= i_tim_psc;
         else
-          if (psc_cnt < unsigned(psc_reg)) then
+          if (psc_cnt < unsigned(reg.psc)) then
             psc_cnt <= psc_cnt + 1;
           else
             psc_cnt <= (others => '0');
@@ -83,13 +82,13 @@ begin
   p_auto_reload : process(i_rst_n, i_clk)
   begin
     if (i_rst_n = '0') then
-      arr_reg <= (others => '0');
+      reg.arr <= (others => '0');
     elsif rising_edge(i_clk) then
       if (ctrl_en = '0') then
-        arr_reg <= (others => '0');
+        reg.arr <= (others => '0');
       else
         if (ctrl_en_re = '1') then
-          arr_reg <= i_tim_arr;
+          reg.arr <= i_tim_arr;
         end if;
       end if;
     end if;
@@ -112,7 +111,7 @@ begin
         tim_ov_evt <= '0';
         -- 
         if (psc_clk_en = '1') then
-          if (tim_cnt < unsigned(arr_reg)) then
+          if (tim_cnt < unsigned(reg.arr)) then
             tim_cnt <= tim_cnt + 1;
             tim_up_evt <= '1';
           else
